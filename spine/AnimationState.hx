@@ -1281,7 +1281,7 @@ class EventQueue {
     public function new() {}
 }
 
-@:enum abstract EventType(Int) from Int to Int {
+enum abstract EventType(Int) from Int to Int {
     var start = 0; var interrupt = 1; var end = 2; var dispose = 3; var complete = 4; var event = 5;
 }
 

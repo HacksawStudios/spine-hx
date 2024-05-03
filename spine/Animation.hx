@@ -183,7 +183,7 @@ interface Timeline {
  * < 1.
  * <p>
  * See Timeline {@link Timeline#apply(Skeleton, float, float, Array, float, MixBlend, MixDirection)}. */
-@:enum abstract MixBlend(Int) from Int to Int {
+enum abstract MixBlend(Int) from Int to Int {
     /** Transitions from the setup value to the timeline value (the current value is not used). Before the first key, the setup
      * value is set. */
     var setup = 0;
@@ -211,11 +211,11 @@ interface Timeline {
  * mixing in toward 1 (the timeline's value).
  * <p>
  * See Timeline {@link Timeline#apply(Skeleton, float, float, Array, float, MixBlend, MixDirection)}. */
-@:enum abstract MixDirection(Int) from Int to Int {
+enum abstract MixDirection(Int) from Int to Int {
     var directionIn = 0; var directionOut = 1;
 }
 
-@:enum abstract TimelineType(Int) from Int to Int {
+enum abstract TimelineType(Int) from Int to Int {
     var rotate = 0; var translate = 1; var scale = 2; var shear = 3; //
     var attachment = 4; var color = 5; var deform = 6; //
     var event = 7; var drawOrder = 8; //
