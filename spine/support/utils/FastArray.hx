@@ -16,7 +16,7 @@ class FastArrayInternal<T> {
 @:forward(length, data)
 abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 	public function new(shouldAlloc = true) {
-		this = new FastArrayInternal<T>();
+		this = new FastArrayInternal<T>(shouldAlloc);
 	}
 
 	public static function toFastArray<T>(x:std.Array<T>):FastArray<T> {
