@@ -151,9 +151,44 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 
 	public var length(get, set):Int;
 
-	function get_length():Int
+	function get_length():Int {
 		return this.length;
+	}
 
-	function set_length(x:Int):Void
+	function set_length(x:Int):Int {
+		final original = this.length;
 		this.length = x;
+		return original;
+	}
+
+	public function clear() {
+		length = 0;
+	}
+
+	inline public function setSize(size:Int):FastArray<T> {
+		var len = this.length;
+		if (len > size) {
+			splice(size, size - len);
+		} else if (len < size) {
+			while (len < size) {
+				push(null);
+				len++;
+			}
+		}
+		return this;
+	}
+
+	inline public function addAll(items:FastArray<T>, start:Int = 0, count:Int = -1):Void {
+		if (count == -1)
+			count = items.length;
+		var i = this.length;
+		var len = i + items.length;
+		setSize(len);
+		for (item in items) {
+			// this[i++] = item;
+			unsafeSet(i++, item);
+			if (--count <= 0)
+				break;
+		}
+	}
 }
