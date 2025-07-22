@@ -8,9 +8,10 @@ class FastArrayInternal<T> {
 
 	public function new(shouldAlloc = true) {
 		length = 0;
-		data = null;
-		// if (shouldAlloc)
-		// data = new std.Array<T>();
+		if (shouldAlloc)
+			data = new std.Array<T>();
+		else
+			data = null;
 	}
 }
 
@@ -169,7 +170,7 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 	inline public function setSize(size:Int):FastArray<T> {
 		var len = this.length;
 		if (len > size) {
-			splice(size, size - len);
+			this.length = size;
 		} else if (len < size) {
 			while (len < size) {
 				push(null);
