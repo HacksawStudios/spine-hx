@@ -31,7 +31,7 @@ package spine.utils;
 
 import spine.Slot;
 import spine.attachments.ClippingAttachment;
-import spine.support.utils.Array;
+import spine.support.utils.FastArray;
 import spine.support.utils.FloatArray;
 import spine.support.utils.ShortArray;
 
@@ -253,28 +253,45 @@ class SkeletonClipping {
 
 	/** Clips the input triangle against the convex, clockwise clipping area. If the triangle lies entirely within the clipping
 	 * area, false is returned. The clipping area must duplicate the first vertex at the end of the vertices list. */
-	public function clip(x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float, clippingArea:FloatArray, output:FloatArray):Bool {
-		var originalOutput:FloatArray = output;
+	public function clip(x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float, clippingArea:FloatArray, output_:FloatArray):Bool {
+		var _output:FastArray<Float> = FastArray.toFastArray(output_);
+		// var originalOutput:FloatArray = output;
+		var _originalOutput:FastArray<Float> = _output;
 		var clipped:Bool = false;
 
 		// Avoid copy at the end.
-		var input:FloatArray = null;
+		// var input:FloatArray = null;
+		var _input:FastArray<Float> = null;
 		if (clippingArea.size % 4 >= 2) {
-			input = output;
-			output = scratch;
-		} else
-			input = scratch;
+			// input = output;
+			// output = scratch;
+			_input = _output;
+			_output = FastArray.toFastArray(scratch);
+		} else {
+			// input = scratch;
+			_input = FastArray.toFastArray(scratch);
+		}
 
-		input.clear();
-		input.add(x1);
-		input.add(y1);
-		input.add(x2);
-		input.add(y2);
-		input.add(x3);
-		input.add(y3);
-		input.add(x1);
-		input.add(y1);
-		output.clear();
+		// input.clear();
+		// input.add(x1);
+		// input.add(y1);
+		// input.add(x2);
+		// input.add(y2);
+		// input.add(x3);
+		// input.add(y3);
+		// input.add(x1);
+		// input.add(y1);
+		// output.clear();
+		_input.clear();
+		_input.push(x1);
+		_input.push(y1);
+		_input.push(x2);
+		_input.push(y2);
+		_input.push(x3);
+		_input.push(y3);
+		_input.push(x1);
+		_input.push(y1);
+		_output.clear();
 
 		var clippingVertices:FloatArray = clippingArea.items;
 		var clippingVerticesLast:Int = clippingArea.size - 4;
@@ -287,20 +304,23 @@ class SkeletonClipping {
 			var deltaX:Float = edgeX - edgeX2;
 			var deltaY:Float = edgeY - edgeY2;
 
-			var inputVertices:FloatArray = input.items;
-			var inputVerticesLength:Int = input.size - 2;
-			var outputStart:Int = output.size;
+			// var inputVertices:FloatArray = input.items;
+			var _inputVertices:FastArray<Float> = _input;
+			var inputVerticesLength:Int = _input.length - 2;
+			var outputStart:Int = _output.length;
 			var ii:Int = 0;
 			while (ii < inputVerticesLength) {
-				var inputX:Float = inputVertices[ii];
-				var inputY:Float = inputVertices[ii + 1];
-				var inputX2:Float = inputVertices[ii + 2];
-				var inputY2:Float = inputVertices[ii + 3];
+				var inputX:Float = _inputVertices[ii];
+				var inputY:Float = _inputVertices[ii + 1];
+				var inputX2:Float = _inputVertices[ii + 2];
+				var inputY2:Float = _inputVertices[ii + 3];
 				var side2:Bool = deltaX * (inputY2 - edgeY2) - deltaY * (inputX2 - edgeX2) > 0;
 				if (deltaX * (inputY - edgeY2) - deltaY * (inputX - edgeX2) > 0) {
 					if (side2) { // v1 inside, v2 inside
-						output.add(inputX2);
-						output.add(inputY2);
+						// output.add(inputX2);
+						// output.add(inputY2);
+						_output.push(inputX2);
+						_output.push(inputY2);
 						{
 							ii += 2;
 							continue;
@@ -312,11 +332,15 @@ class SkeletonClipping {
 					var s:Float = c0 * (edgeX2 - edgeX) - c2 * (edgeY2 - edgeY);
 					if (Math.abs(s) > 0.000001) {
 						var ua:Float = (c2 * (edgeY - inputY) - c0 * (edgeX - inputX)) / s;
-						output.add(edgeX + (edgeX2 - edgeX) * ua);
-						output.add(edgeY + (edgeY2 - edgeY) * ua);
+						// output.add(edgeX + (edgeX2 - edgeX) * ua);
+						// output.add(edgeY + (edgeY2 - edgeY) * ua);
+						_output.push(edgeX + (edgeX2 - edgeX) * ua);
+						_output.push(edgeY + (edgeY2 - edgeY) * ua);
 					} else {
-						output.add(edgeX);
-						output.add(edgeY);
+						// output.add(edgeX);
+						// output.add(edgeY);
+						_output.push(edgeX);
+						_output.push(edgeY);
 					}
 				} else if (side2) { // v1 outside, v2 inside
 					var c0:Float = inputY2 - inputY;
@@ -324,41 +348,69 @@ class SkeletonClipping {
 					var s:Float = c0 * (edgeX2 - edgeX) - c2 * (edgeY2 - edgeY);
 					if (Math.abs(s) > 0.000001) {
 						var ua:Float = (c2 * (edgeY - inputY) - c0 * (edgeX - inputX)) / s;
-						output.add(edgeX + (edgeX2 - edgeX) * ua);
-						output.add(edgeY + (edgeY2 - edgeY) * ua);
+						// output.add(edgeX + (edgeX2 - edgeX) * ua);
+						// output.add(edgeY + (edgeY2 - edgeY) * ua);
+						_output.push(edgeX + (edgeX2 - edgeX) * ua);
+						_output.push(edgeY + (edgeY2 - edgeY) * ua);
 					} else {
-						output.add(edgeX);
-						output.add(edgeY);
+						// output.add(edgeX);
+						// output.add(edgeY);
+						_output.push(edgeX);
+						_output.push(edgeY);
 					}
-					output.add(inputX2);
-					output.add(inputY2);
+					// output.add(inputX2);
+					// output.add(inputY2);
+					_output.push(inputX2);
+					_output.push(inputY2);
 				}
 				clipped = true;
 				ii += 2;
 			}
 
-			if (outputStart == output.size) { // All edges outside.
-				originalOutput.clear();
+			if (outputStart == _output.length) { // All edges outside.
+				// originalOutput.clear();
+				_originalOutput.clear();
+
+				_originalOutput.toStdArray();
+				_output.toStdArray();
+				_input.toStdArray();
 				return true;
 			}
 
-			output.add(output.items[0]);
-			output.add(output.items[1]);
+			// output.add(output.items[0]);
+			// output.add(output.items[1]);
+			_output.push(_output[0]);
+			_output.push(_output[1]);
 
 			if (i == clippingVerticesLast)
 				break;
-			var temp:FloatArray = output;
-			output = input;
-			output.clear();
-			input = temp;
+			// var temp:FloatArray = output;
+			// output = input;
+			// output.clear();
+			// input = temp;
+
+			var _temp:FastArray<Float> = _output;
+			_output = _input;
+			_output.clear();
+			_input = _temp;
+
 			i += 2;
 		}
 
-		if (originalOutput != output) {
-			originalOutput.clear();
-			originalOutput.addAll(output.items, 0, output.size - 2);
-		} else
-			originalOutput.setSize(originalOutput.size - 2);
+		if (_originalOutput != _output) {
+			// originalOutput.clear();
+			// originalOutput.addAll(output.items, 0, output.size - 2);
+
+			_originalOutput.clear();
+			_originalOutput.addAll(_output, 0, _output.length - 2);
+		} else {
+			// originalOutput.setSize(originalOutput.size - 2);
+			_originalOutput.setSize(_originalOutput.length - 2);
+		}
+
+		_originalOutput.toStdArray();
+		_output.toStdArray();
+		_input.toStdArray();
 
 		return clipped;
 	}
