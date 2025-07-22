@@ -8,8 +8,9 @@ class FastArrayInternal<T> {
 
 	public function new(shouldAlloc = true) {
 		length = 0;
-		if (shouldAlloc)
-			data = new std.Array<T>();
+		data = null;
+		// if (shouldAlloc)
+		// data = new std.Array<T>();
 	}
 }
 
