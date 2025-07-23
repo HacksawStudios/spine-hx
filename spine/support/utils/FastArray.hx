@@ -28,6 +28,11 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 		return array;
 	}
 
+	public function toStdArray():std.Array<T> {
+		untyped this.data.length = this.length;
+		return this.data;
+	}
+
 	@:op([]) public function get(index:Int):T {
 		return this.data[index];
 	}
@@ -120,11 +125,6 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 
 	public function toString():String {
 		return this.data.toString();
-	}
-
-	public function toStdArray():std.Array<T> {
-		untyped this.data.length = this.length;
-		return this.data;
 	}
 
 	public function iterator():Iterator<T> {
