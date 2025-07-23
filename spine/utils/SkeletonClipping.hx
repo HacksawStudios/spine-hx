@@ -362,9 +362,9 @@ class SkeletonClipping {
 
 		if (originalOutput != output) {
 			originalOutput.clear();
-			originalOutput.addAll(output, 0, output.length - 2);
+			originalOutput.addAll(output, 0.0, 0, output.length - 2);
 		} else {
-			originalOutput.setSize(originalOutput.length - 2);
+			originalOutput.setSize(originalOutput.length - 2, 0.0);
 		}
 
 		output.toStdArray();

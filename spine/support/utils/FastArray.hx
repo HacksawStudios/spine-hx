@@ -167,25 +167,25 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 		length = 0;
 	}
 
-	inline public function setSize(size:Int):FastArray<T> {
+	inline public function setSize(size:Int, defaultValue:T):FastArray<T> {
 		var len = this.length;
 		if (len > size) {
 			this.length = size;
 		} else if (len < size) {
 			while (len < size) {
-				push(null);
+				push(defaultValue);
 				len++;
 			}
 		}
 		return this;
 	}
 
-	inline public function addAll(items:FastArray<T>, start:Int = 0, count:Int = -1):Void {
+	inline public function addAll(items:FastArray<T>, defaultValue:T, start:Int = 0, count:Int = -1):Void {
 		if (count == -1)
 			count = items.length;
 		var i = this.length;
 		var len = i + items.length;
-		setSize(len);
+		setSize(len, defaultValue);
 		for (item in items) {
 			// this[i++] = item;
 			unsafeSet(i++, item);
