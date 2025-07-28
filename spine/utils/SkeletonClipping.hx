@@ -25,397 +25,314 @@
  * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THE SPINE RUNTIMES, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*****************************************************************************/
+ *****************************************************************************/
 
 package spine.utils;
 
-import spine.Slot;
-import spine.attachments.ClippingAttachment;
 import spine.support.utils.FastArray;
 import spine.support.utils.FloatArray;
 import spine.support.utils.ShortArray;
 
+import spine.Slot;
+import spine.attachments.ClippingAttachment;
+
 class SkeletonClipping {
-	private var triangulator:Triangulator = new Triangulator();
-	private var clippingPolygon:FloatArray = new FloatArray();
-	private var clipOutput:FloatArray = new FloatArray(128);
-	private var clippedVertices:FloatArray = new FloatArray(128);
-	private var clippedTriangles:ShortArray = new ShortArray(128);
-	private var scratch:FloatArray = new FloatArray();
+    private var triangulator:Triangulator = new Triangulator();
+    private var clippingPolygon:FloatArray = new FloatArray();
+    private var clipOutput:FloatArray = new FloatArray(128);
+    private var clippedVertices:FloatArray = new FloatArray(128);
+    private var clippedTriangles:ShortArray = new ShortArray(128);
+    private var scratch:FloatArray = new FloatArray();
 
-	private var clipAttachment:ClippingAttachment;
-	private var clippingPolygons:FloatArray2D;
+    private var clipAttachment:ClippingAttachment;
+    private var clippingPolygons:FloatArray2D;
 
-	#if !spine_no_inline inline #end public function clipStart(slot:Slot, clip:ClippingAttachment):Void {
-		if (clipAttachment != null)
-			return;
-		var n:Int = clip.getWorldVerticesLength();
-		if (n < 6)
-			return;
-		clipAttachment = clip;
+    #if !spine_no_inline inline #end public function clipStart(slot:Slot, clip:ClippingAttachment):Void {
+        if (clipAttachment != null) return;
+        var n:Int = clip.getWorldVerticesLength();
+        if (n < 6) return;
+        clipAttachment = clip;
 
-		var vertices:FloatArray = clippingPolygon.setSize(n);
-		clip.computeWorldVertices(slot, 0, n, vertices, 0, 2);
-		makeClockwise(clippingPolygon);
-		var triangles:ShortArray = triangulator.triangulate(clippingPolygon);
-		clippingPolygons = triangulator.decompose(clippingPolygon, triangles);
-		for (polygon in clippingPolygons) {
-			makeClockwise(polygon);
-			polygon.add(polygon.items[0]);
-			polygon.add(polygon.items[1]);
-		}
-	}
+        var vertices:FloatArray = clippingPolygon.setSize(n);
+        clip.computeWorldVertices(slot, 0, n, vertices, 0, 2);
+        makeClockwise(clippingPolygon);
+        var triangles:ShortArray = triangulator.triangulate(clippingPolygon);
+        clippingPolygons = triangulator.decompose(clippingPolygon, triangles);
+        for (polygon in clippingPolygons) {
+            makeClockwise(polygon);
+            polygon.add(polygon.items[0]);
+            polygon.add(polygon.items[1]);
+        }
+    }
 
-	#if !spine_no_inline inline #end public function clipEndWithSlot(slot:Slot):Void {
-		if (clipAttachment != null && clipAttachment.getEndSlot() == slot.getData())
-			clipEnd();
-	}
+    #if !spine_no_inline inline #end public function clipEndWithSlot(slot:Slot):Void {
+        if (clipAttachment != null && clipAttachment.getEndSlot() == slot.getData()) clipEnd();
+    }
 
-	#if !spine_no_inline inline #end public function clipEnd():Void {
-		if (clipAttachment == null)
-			return;
-		clipAttachment = null;
-		clippingPolygons = null;
-		clippedVertices.clear();
-		clippedTriangles.clear();
-		clippingPolygon.clear();
-	}
+    #if !spine_no_inline inline #end public function clipEnd():Void {
+        if (clipAttachment == null) return;
+        clipAttachment = null;
+        clippingPolygons = null;
+        clippedVertices.clear();
+        clippedTriangles.clear();
+        clippingPolygon.clear();
+    }
 
-	#if !spine_no_inline inline #end public function isClipping():Bool {
-		return clipAttachment != null;
-	}
+    #if !spine_no_inline inline #end public function isClipping():Bool {
+        return clipAttachment != null;
+    }
 
-	#if !spine_no_inline inline #end public function clipTriangles(vertices:FloatArray, verticesLength:Int, triangles:ShortArray, trianglesLength:Int,
-			uvs:FloatArray, light:Float, dark:Float, twoColor:Bool):Void {
-		var clipOutput:FloatArray = this.clipOutput;
-		var clippedVertices:FloatArray = this.clippedVertices;
-		var clippedTriangles:ShortArray = this.clippedTriangles;
-		var polygons = clippingPolygons.items;
-		var polygonsCount:Int = clippingPolygons.size;
-		var vertexSize:Int = twoColor ? 6 : 5;
+    #if !spine_no_inline inline #end public function clipTriangles(vertices:FloatArray, verticesLength:Int, triangles:ShortArray, trianglesLength:Int, uvs:FloatArray, light:Float, dark:Float, twoColor:Bool):Void {
 
-		var index:Short = 0;
-		clippedVertices.clear();
-		clippedTriangles.clear();
-		var _gotoLabel_outer:Int;
-		while (true) {
-			_gotoLabel_outer = 0;
-			var i:Int = 0;
-			while (i < trianglesLength) {
-				var vertexOffset:Int = triangles[i] << 1;
-				var x1:Float = vertices[vertexOffset];
-				var y1:Float = vertices[vertexOffset + 1];
-				var u1:Float = uvs[vertexOffset];
-				var v1:Float = uvs[vertexOffset + 1];
+        var clipOutput:FloatArray = this.clipOutput; var clippedVertices:FloatArray = this.clippedVertices;
+        var clippedTriangles:ShortArray = this.clippedTriangles;
+        var polygons = clippingPolygons.items;
+        var polygonsCount:Int = clippingPolygons.size;
+        var vertexSize:Int = twoColor ? 6 : 5;
 
-				vertexOffset = triangles[i + 1] << 1;
-				var x2:Float = vertices[vertexOffset];
-				var y2:Float = vertices[vertexOffset + 1];
-				var u2:Float = uvs[vertexOffset];
-				var v2:Float = uvs[vertexOffset + 1];
+        var index:Short = 0;
+        clippedVertices.clear();
+        clippedTriangles.clear();
+        var _gotoLabel_outer:Int; while (true) { _gotoLabel_outer = 0; 
+        var i:Int = 0; while (i < trianglesLength) {
+            var vertexOffset:Int = triangles[i] << 1;
+            var x1:Float = vertices[vertexOffset]; var y1:Float = vertices[vertexOffset + 1];
+            var u1:Float = uvs[vertexOffset]; var v1:Float = uvs[vertexOffset + 1];
 
-				vertexOffset = triangles[i + 2] << 1;
-				var x3:Float = vertices[vertexOffset];
-				var y3:Float = vertices[vertexOffset + 1];
-				var u3:Float = uvs[vertexOffset];
-				var v3:Float = uvs[vertexOffset + 1];
+            vertexOffset = triangles[i + 1] << 1;
+            var x2:Float = vertices[vertexOffset]; var y2:Float = vertices[vertexOffset + 1];
+            var u2:Float = uvs[vertexOffset]; var v2:Float = uvs[vertexOffset + 1];
 
-				var p:Int = 0;
-				while (p < polygonsCount) {
-					var s:Int = clippedVertices.size;
-					if (clip(x1, y1, x2, y2, x3, y3, polygons[p], clipOutput)) {
-						var clipOutputLength:Int = clipOutput.size;
-						if (clipOutputLength == 0) {
-							p++;
-							continue;
-						}
-						var d0:Float = y2 - y3;
-						var d1:Float = x3 - x2;
-						var d2:Float = x1 - x3;
-						var d4:Float = y3 - y1;
-						var d:Float = 1 / (d0 * d2 + d1 * (y1 - y3));
+            vertexOffset = triangles[i + 2] << 1;
+            var x3:Float = vertices[vertexOffset]; var y3:Float = vertices[vertexOffset + 1];
+            var u3:Float = uvs[vertexOffset]; var v3:Float = uvs[vertexOffset + 1];
 
-						var clipOutputCount:Int = clipOutputLength >> 1;
-						var clipOutputItems:FloatArray = clipOutput.items;
-						var clippedVerticesItems:FloatArray = clippedVertices.setSize(s + clipOutputCount * vertexSize);
-						var ii:Int = 0;
-						while (ii < clipOutputLength) {
-							var x:Float = clipOutputItems[ii];
-							var y:Float = clipOutputItems[ii + 1];
-							clippedVerticesItems[s] = x;
-							clippedVerticesItems[s + 1] = y;
-							clippedVerticesItems[s + 2] = light;
-							if (twoColor) {
-								clippedVerticesItems[s + 3] = dark;
-								s += 4;
-							} else
-								s += 3;
-							var c0:Float = x - x3;
-							var c1:Float = y - y3;
-							var a:Float = (d0 * c0 + d1 * c1) * d;
-							var b:Float = (d4 * c0 + d2 * c1) * d;
-							var c:Float = 1 - a - b;
-							clippedVerticesItems[s] = u1 * a + u2 * b + u3 * c;
-							clippedVerticesItems[s + 1] = v1 * a + v2 * b + v3 * c;
-							s += 2;
-							ii += 2;
-						}
-						if (_gotoLabel_outer == 2)
-							break;
-						if (_gotoLabel_outer >= 1)
-							break;
+            var p:Int = 0; while (p < polygonsCount) {
+                var s:Int = clippedVertices.size;
+                if (clip(x1, y1, x2, y2, x3, y3, polygons[p], clipOutput)) {
+                    var clipOutputLength:Int = clipOutput.size;
+                    if (clipOutputLength == 0) { p++; continue; }
+                    var d0:Float = y2 - y3; var d1:Float = x3 - x2; var d2:Float = x1 - x3; var d4:Float = y3 - y1;
+                    var d:Float = 1 / (d0 * d2 + d1 * (y1 - y3));
 
-						s = clippedTriangles.size;
-						var clippedTrianglesItems:ShortArray = clippedTriangles.setSize(s + 3 * (clipOutputCount - 2));
-						clipOutputCount--;
-						var ii:Int = 1;
-						while (ii < clipOutputCount) {
-							clippedTrianglesItems[s] = index;
-							clippedTrianglesItems[s + 1] = Std.int((index + ii));
-							clippedTrianglesItems[s + 2] = Std.int((index + ii + 1));
-							s += 3;
-							ii++;
-						}
-						if (_gotoLabel_outer == 2)
-							break;
-						if (_gotoLabel_outer >= 1)
-							break;
-						index += clipOutputCount + 1;
-					} else {
-						var clippedVerticesItems:FloatArray = clippedVertices.setSize(s + 3 * vertexSize);
-						clippedVerticesItems[s] = x1;
-						clippedVerticesItems[s + 1] = y1;
-						clippedVerticesItems[s + 2] = light;
-						if (!twoColor) {
-							clippedVerticesItems[s + 3] = u1;
-							clippedVerticesItems[s + 4] = v1;
+                    var clipOutputCount:Int = clipOutputLength >> 1;
+                    var clipOutputItems:FloatArray = clipOutput.items;
+                    var clippedVerticesItems:FloatArray = clippedVertices.setSize(s + clipOutputCount * vertexSize);
+                    var ii:Int = 0; while (ii < clipOutputLength) {
+                        var x:Float = clipOutputItems[ii]; var y:Float = clipOutputItems[ii + 1];
+                        clippedVerticesItems[s] = x;
+                        clippedVerticesItems[s + 1] = y;
+                        clippedVerticesItems[s + 2] = light;
+                        if (twoColor) {
+                            clippedVerticesItems[s + 3] = dark;
+                            s += 4;
+                        } else
+                            s += 3;
+                        var c0:Float = x - x3; var c1:Float = y - y3;
+                        var a:Float = (d0 * c0 + d1 * c1) * d;
+                        var b:Float = (d4 * c0 + d2 * c1) * d;
+                        var c:Float = 1 - a - b;
+                        clippedVerticesItems[s] = u1 * a + u2 * b + u3 * c;
+                        clippedVerticesItems[s + 1] = v1 * a + v2 * b + v3 * c;
+                        s += 2;
+                    ii += 2; } if (_gotoLabel_outer == 2) break; if (_gotoLabel_outer >= 1) break;
 
-							clippedVerticesItems[s + 5] = x2;
-							clippedVerticesItems[s + 6] = y2;
-							clippedVerticesItems[s + 7] = light;
-							clippedVerticesItems[s + 8] = u2;
-							clippedVerticesItems[s + 9] = v2;
+                    s = clippedTriangles.size;
+                    var clippedTrianglesItems:ShortArray = clippedTriangles.setSize(s + 3 * (clipOutputCount - 2));
+                    clipOutputCount--;
+                    var ii:Int = 1; while (ii < clipOutputCount) {
+                        clippedTrianglesItems[s] = index;
+                        clippedTrianglesItems[s + 1] = Std.int((index + ii));
+                        clippedTrianglesItems[s + 2] = Std.int((index + ii + 1));
+                        s += 3;
+                    ii++; } if (_gotoLabel_outer == 2) break; if (_gotoLabel_outer >= 1) break;
+                    index += clipOutputCount + 1;
 
-							clippedVerticesItems[s + 10] = x3;
-							clippedVerticesItems[s + 11] = y3;
-							clippedVerticesItems[s + 12] = light;
-							clippedVerticesItems[s + 13] = u3;
-							clippedVerticesItems[s + 14] = v3;
-						} else {
-							clippedVerticesItems[s + 3] = dark;
-							clippedVerticesItems[s + 4] = u1;
-							clippedVerticesItems[s + 5] = v1;
+                } else {
+                    var clippedVerticesItems:FloatArray = clippedVertices.setSize(s + 3 * vertexSize);
+                    clippedVerticesItems[s] = x1;
+                    clippedVerticesItems[s + 1] = y1;
+                    clippedVerticesItems[s + 2] = light;
+                    if (!twoColor) {
+                        clippedVerticesItems[s + 3] = u1;
+                        clippedVerticesItems[s + 4] = v1;
 
-							clippedVerticesItems[s + 6] = x2;
-							clippedVerticesItems[s + 7] = y2;
-							clippedVerticesItems[s + 8] = light;
-							clippedVerticesItems[s + 9] = dark;
-							clippedVerticesItems[s + 10] = u2;
-							clippedVerticesItems[s + 11] = v2;
+                        clippedVerticesItems[s + 5] = x2;
+                        clippedVerticesItems[s + 6] = y2;
+                        clippedVerticesItems[s + 7] = light;
+                        clippedVerticesItems[s + 8] = u2;
+                        clippedVerticesItems[s + 9] = v2;
 
-							clippedVerticesItems[s + 12] = x3;
-							clippedVerticesItems[s + 13] = y3;
-							clippedVerticesItems[s + 14] = light;
-							clippedVerticesItems[s + 15] = dark;
-							clippedVerticesItems[s + 16] = u3;
-							clippedVerticesItems[s + 17] = v3;
-						}
+                        clippedVerticesItems[s + 10] = x3;
+                        clippedVerticesItems[s + 11] = y3;
+                        clippedVerticesItems[s + 12] = light;
+                        clippedVerticesItems[s + 13] = u3;
+                        clippedVerticesItems[s + 14] = v3;
+                    } else {
+                        clippedVerticesItems[s + 3] = dark;
+                        clippedVerticesItems[s + 4] = u1;
+                        clippedVerticesItems[s + 5] = v1;
 
-						s = clippedTriangles.size;
-						var clippedTrianglesItems:ShortArray = clippedTriangles.setSize(s + 3);
-						clippedTrianglesItems[s] = index;
-						clippedTrianglesItems[s + 1] = Std.int((index + 1));
-						clippedTrianglesItems[s + 2] = Std.int((index + 2));
-						index += 3;
-						{
-							p++;
-							_gotoLabel_outer = 2;
-							break;
-						}
-					}
-					p++;
-				}
-				if (_gotoLabel_outer == 2) {
-					_gotoLabel_outer = 0;
-					{
-						i += 3;
-						continue;
-					}
-				}
-				if (_gotoLabel_outer >= 1)
-					break;
-				i += 3;
-			}
-			if (_gotoLabel_outer == 0)
-				break;
-		}
-	}
+                        clippedVerticesItems[s + 6] = x2;
+                        clippedVerticesItems[s + 7] = y2;
+                        clippedVerticesItems[s + 8] = light;
+                        clippedVerticesItems[s + 9] = dark;
+                        clippedVerticesItems[s + 10] = u2;
+                        clippedVerticesItems[s + 11] = v2;
 
-	/** Clips the input triangle against the convex, clockwise clipping area. If the triangle lies entirely within the clipping
-	 * area, false is returned. The clipping area must duplicate the first vertex at the end of the vertices list. */
-	public function clip(x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float, clippingArea:FloatArray, outputFloatArray:FloatArray):Bool {
-		var output:FastArray<Float> = FastArray.toFastArray(outputFloatArray);
-		var originalOutput:FastArray<Float> = output;
-		var clipped:Bool = false;
+                        clippedVerticesItems[s + 12] = x3;
+                        clippedVerticesItems[s + 13] = y3;
+                        clippedVerticesItems[s + 14] = light;
+                        clippedVerticesItems[s + 15] = dark;
+                        clippedVerticesItems[s + 16] = u3;
+                        clippedVerticesItems[s + 17] = v3;
+                    }
 
-		// Avoid copy at the end.
-		var input:FastArray<Float> = null;
-		if (clippingArea.size % 4 >= 2) {
-			input = output;
-			output = FastArray.toFastArray(scratch);
-		} else {
-			input = FastArray.toFastArray(scratch);
-		}
+                    s = clippedTriangles.size;
+                    var clippedTrianglesItems:ShortArray = clippedTriangles.setSize(s + 3);
+                    clippedTrianglesItems[s] = index;
+                    clippedTrianglesItems[s + 1] = Std.int((index + 1));
+                    clippedTrianglesItems[s + 2] = Std.int((index + 2));
+                    index += 3;
+                    { p++; _gotoLabel_outer = 2; break; }
+                }
+            p++; } if (_gotoLabel_outer == 2) { _gotoLabel_outer = 0; { i += 3; continue; } } if (_gotoLabel_outer >= 1) break;
+        i += 3; } if (_gotoLabel_outer == 0) break; }
+    }
 
-		input.clear();
-		input.push(x1);
-		input.push(y1);
-		input.push(x2);
-		input.push(y2);
-		input.push(x3);
-		input.push(y3);
-		input.push(x1);
-		input.push(y1);
-		output.clear();
+    /** Clips the input triangle against the convex, clockwise clipping area. If the triangle lies entirely within the clipping
+     * area, false is returned. The clipping area must duplicate the first vertex at the end of the vertices list. */
+    public function clip(x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float, clippingArea:FloatArray, outputFloatArray:FloatArray):Bool {
+        var output:FastArray<Float> = FastArray.toFastArray(outputFloatArray);
+        var originalOutput:FastArray<Float> = output;
+        var clipped:Bool = false;
 
-		var clippingVertices:FloatArray = clippingArea.items;
-		var clippingVerticesLast:Int = clippingArea.size - 4;
-		var i:Int = 0;
-		while (true) {
-			var edgeX:Float = clippingVertices[i];
-			var edgeY:Float = clippingVertices[i + 1];
-			var edgeX2:Float = clippingVertices[i + 2];
-			var edgeY2:Float = clippingVertices[i + 3];
-			var deltaX:Float = edgeX - edgeX2;
-			var deltaY:Float = edgeY - edgeY2;
+        // Avoid copy at the end.
+        var input:FastArray<Float> = null;
+        if (clippingArea.size % 4 >= 2) {
+            input = output;
+            output = FastArray.toFastArray(scratch);
+        } else
+            input = FastArray.toFastArray(scratch);
 
-			var _inputVertices:FastArray<Float> = input;
-			var inputVerticesLength:Int = input.length - 2;
-			var outputStart:Int = output.length;
-			var ii:Int = 0;
-			while (ii < inputVerticesLength) {
-				var inputX:Float = _inputVertices[ii];
-				var inputY:Float = _inputVertices[ii + 1];
-				var inputX2:Float = _inputVertices[ii + 2];
-				var inputY2:Float = _inputVertices[ii + 3];
-				var side2:Bool = deltaX * (inputY2 - edgeY2) - deltaY * (inputX2 - edgeX2) > 0;
-				if (deltaX * (inputY - edgeY2) - deltaY * (inputX - edgeX2) > 0) {
-					if (side2) { // v1 inside, v2 inside
-						output.push(inputX2);
-						output.push(inputY2);
-						{
-							ii += 2;
-							continue;
-						}
-					}
-					// v1 inside, v2 outside
-					var c0:Float = inputY2 - inputY;
-					var c2:Float = inputX2 - inputX;
-					var s:Float = c0 * (edgeX2 - edgeX) - c2 * (edgeY2 - edgeY);
-					if (Math.abs(s) > 0.000001) {
-						var ua:Float = (c2 * (edgeY - inputY) - c0 * (edgeX - inputX)) / s;
-						output.push(edgeX + (edgeX2 - edgeX) * ua);
-						output.push(edgeY + (edgeY2 - edgeY) * ua);
-					} else {
-						output.push(edgeX);
-						output.push(edgeY);
-					}
-				} else if (side2) { // v1 outside, v2 inside
-					var c0:Float = inputY2 - inputY;
-					var c2:Float = inputX2 - inputX;
-					var s:Float = c0 * (edgeX2 - edgeX) - c2 * (edgeY2 - edgeY);
-					if (Math.abs(s) > 0.000001) {
-						var ua:Float = (c2 * (edgeY - inputY) - c0 * (edgeX - inputX)) / s;
-						output.push(edgeX + (edgeX2 - edgeX) * ua);
-						output.push(edgeY + (edgeY2 - edgeY) * ua);
-					} else {
-						output.push(edgeX);
-						output.push(edgeY);
-					}
-					output.push(inputX2);
-					output.push(inputY2);
-				}
-				clipped = true;
-				ii += 2;
-			}
+        input.clear();
+        input.push(x1);
+        input.push(y1);
+        input.push(x2);
+        input.push(y2);
+        input.push(x3);
+        input.push(y3);
+        input.push(x1);
+        input.push(y1);
+        output.clear();
 
-			if (outputStart == output.length) { // All edges outside.
-				originalOutput.clear();
+        var clippingVertices:FloatArray = clippingArea.items;
+        var clippingVerticesLast:Int = clippingArea.size - 4;
+        var i:Int = 0; while (true) {
+            var edgeX:Float = clippingVertices[i]; var edgeY:Float = clippingVertices[i + 1];
+            var edgeX2:Float = clippingVertices[i + 2]; var edgeY2:Float = clippingVertices[i + 3];
+            var deltaX:Float = edgeX - edgeX2; var deltaY:Float = edgeY - edgeY2;
 
-				output.toStdArray();
-				input.toStdArray();
-				return true;
-			}
+            var inputVertices:FastArray<Float> = input;
+            var inputVerticesLength:Int = input.length - 2; var outputStart:Int = output.length;
+            var ii:Int = 0; while (ii < inputVerticesLength) {
+                var inputX:Float = inputVertices[ii]; var inputY:Float = inputVertices[ii + 1];
+                var inputX2:Float = inputVertices[ii + 2]; var inputY2:Float = inputVertices[ii + 3];
+                var side2:Bool = deltaX * (inputY2 - edgeY2) - deltaY * (inputX2 - edgeX2) > 0;
+                if (deltaX * (inputY - edgeY2) - deltaY * (inputX - edgeX2) > 0) {
+                    if (side2) { // v1 inside, v2 inside
+                        output.push(inputX2);
+                        output.push(inputY2);
+                        { ii += 2; continue; }
+                    }
+                    // v1 inside, v2 outside
+                    var c0:Float = inputY2 - inputY; var c2:Float = inputX2 - inputX;
+                    var s:Float = c0 * (edgeX2 - edgeX) - c2 * (edgeY2 - edgeY);
+                    if (Math.abs(s) > 0.000001) {
+                        var ua:Float = (c2 * (edgeY - inputY) - c0 * (edgeX - inputX)) / s;
+                        output.push(edgeX + (edgeX2 - edgeX) * ua);
+                        output.push(edgeY + (edgeY2 - edgeY) * ua);
+                    } else {
+                        output.push(edgeX);
+                        output.push(edgeY);
+                    }
+                } else if (side2) { // v1 outside, v2 inside
+                    var c0:Float = inputY2 - inputY; var c2:Float = inputX2 - inputX;
+                    var s:Float = c0 * (edgeX2 - edgeX) - c2 * (edgeY2 - edgeY);
+                    if (Math.abs(s) > 0.000001) {
+                        var ua:Float = (c2 * (edgeY - inputY) - c0 * (edgeX - inputX)) / s;
+                        output.push(edgeX + (edgeX2 - edgeX) * ua);
+                        output.push(edgeY + (edgeY2 - edgeY) * ua);
+                    } else {
+                        output.push(edgeX);
+                        output.push(edgeY);
+                    }
+                    output.push(inputX2);
+                    output.push(inputY2);
+                }
+                clipped = true;
+            ii += 2; }
 
-			output.push(output[0]);
-			output.push(output[1]);
+            if (outputStart == output.length) { // All edges outside.
+                originalOutput.clear();
 
-			if (i == clippingVerticesLast)
-				break;
-			var temp:FastArray<Float> = output;
-			output = input;
-			output.clear();
-			input = temp;
+                output.toStdArray();
+                input.toStdArray();
+                return true;
+            }
 
-			i += 2;
-		}
+            output.push(output[0]);
+            output.push(output[1]);
 
-		if (originalOutput != output) {
-			originalOutput.clear();
-			originalOutput.addAll(output, 0.0, 0, output.length - 2);
-		} else {
-			originalOutput.setSize(originalOutput.length - 2, 0.0);
-		}
+            if (i == clippingVerticesLast) break;
+            var temp:FastArray<Float> = output;
+            output = input;
+            output.clear();
+            input = temp;
+        i += 2; }
 
-		output.toStdArray();
-		input.toStdArray();
-		return clipped;
-	}
+        if (originalOutput != output) {
+            originalOutput.clear();
+            originalOutput.addAll(output, 0, output.length - 2);
+        } else
+            originalOutput.setSize(originalOutput.length - 2, 0.0);
 
-	#if !spine_no_inline inline #end public function getClippedVertices():FloatArray {
-		return clippedVertices;
-	}
+        output.toStdArray();
+        input.toStdArray();
+        return clipped;
+    }
 
-	#if !spine_no_inline inline #end public function getClippedTriangles():ShortArray {
-		return clippedTriangles;
-	}
+    #if !spine_no_inline inline #end public function getClippedVertices():FloatArray {
+        return clippedVertices;
+    }
 
-	#if !spine_no_inline inline #end static public function makeClockwise(polygon:FloatArray):Void {
-		var vertices:FloatArray = polygon.items;
-		var verticeslength:Int = polygon.size;
+    #if !spine_no_inline inline #end public function getClippedTriangles():ShortArray {
+        return clippedTriangles;
+    }
 
-		var area:Float = vertices[verticeslength - 2] * vertices[1] - vertices[0] * vertices[verticeslength - 1];
-		var p1x:Float = 0;
-		var p1y:Float = 0;
-		var p2x:Float = 0;
-		var p2y:Float = 0;
-		var i:Int = 0;
-		var n:Int = verticeslength - 3;
-		while (i < n) {
-			p1x = vertices[i];
-			p1y = vertices[i + 1];
-			p2x = vertices[i + 2];
-			p2y = vertices[i + 3];
-			area += p1x * p2y - p2x * p1y;
-			i += 2;
-		}
-		if (area < 0)
-			return;
+    #if !spine_no_inline inline #end static public function makeClockwise(polygon:FloatArray):Void {
+        var vertices:FloatArray = polygon.items;
+        var verticeslength:Int = polygon.size;
 
-		var i:Int = 0;
-		var lastX:Int = verticeslength - 2;
-		var n:Int = verticeslength >> 1;
-		while (i < n) {
-			var x:Float = vertices[i];
-			var y:Float = vertices[i + 1];
-			var other:Int = lastX - i;
-			vertices[i] = vertices[other];
-			vertices[i + 1] = vertices[other + 1];
-			vertices[other] = x;
-			vertices[other + 1] = y;
-			i += 2;
-		}
-	}
+        var area:Float = vertices[verticeslength - 2] * vertices[1] - vertices[0] * vertices[verticeslength - 1]; var p1x:Float = 0; var p1y:Float = 0; var p2x:Float = 0; var p2y:Float = 0;
+        var i:Int = 0; var n:Int = verticeslength - 3; while (i < n) {
+            p1x = vertices[i];
+            p1y = vertices[i + 1];
+            p2x = vertices[i + 2];
+            p2y = vertices[i + 3];
+            area += p1x * p2y - p2x * p1y;
+        i += 2; }
+        if (area < 0) return;
 
-	public function new() {}
+        var i:Int = 0; var lastX:Int = verticeslength - 2; var n:Int = verticeslength >> 1; while (i < n) {
+            var x:Float = vertices[i]; var y:Float = vertices[i + 1];
+            var other:Int = lastX - i;
+            vertices[i] = vertices[other];
+            vertices[i + 1] = vertices[other + 1];
+            vertices[other] = x;
+            vertices[other + 1] = y;
+        i += 2; }
+    }
+
+    public function new() {}
 }
