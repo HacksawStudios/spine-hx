@@ -29,8 +29,12 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 	}
 
 	public function toStdArray():std.Array<T> {
-		untyped this.data.length = this.length;
+		syncData();
 		return this.data;
+	}
+
+	function syncData() {
+		untyped this.data.length = this.length;
 	}
 
 	@:op([]) public function get(index:Int):T {
@@ -64,7 +68,8 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 	}
 
 	public function reverse():Void {
-		this.data.reverse(); // Will cause issues
+		syncData();
+		this.data.reverse();
 	}
 
 	public function shift():Null<T> {
@@ -102,7 +107,8 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 	}
 
 	public function sort(f:T->T->Int):Void {
-		this.data.sort(f); // Will cause issues
+		syncData();
+		this.data.sort(f);
 	}
 
 	public function splice(pos:Int, len:Int):FastArray<T> {
@@ -187,7 +193,6 @@ abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 		var len = i + items.length;
 		setSize(len, defaultValue);
 		for (item in items) {
-			// this[i++] = item;
 			unsafeSet(i++, item);
 			if (--count <= 0)
 				break;
