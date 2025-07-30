@@ -29,7 +29,7 @@
 
 package spine.utils;
 
-import spine.support.utils.Array;
+import spine.support.utils.FastArray;
 import spine.support.utils.FloatArray;
 import spine.support.utils.ShortArray;
 
@@ -202,27 +202,28 @@ class SkeletonClipping {
 
     /** Clips the input triangle against the convex, clockwise clipping area. If the triangle lies entirely within the clipping
      * area, false is returned. The clipping area must duplicate the first vertex at the end of the vertices list. */
-    public function clip(x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float, clippingArea:FloatArray, output:FloatArray):Bool {
-        var originalOutput:FloatArray = output;
+    public function clip(x1:Float, y1:Float, x2:Float, y2:Float, x3:Float, y3:Float, clippingArea:FloatArray, outputFloatArray:FloatArray):Bool {
+        var output:FastArray<Float> = FastArray.toFastArray(outputFloatArray);
+        var originalOutput:FastArray<Float> = output;
         var clipped:Bool = false;
 
         // Avoid copy at the end.
-        var input:FloatArray = null;
+        var input:FastArray<Float> = null;
         if (clippingArea.size % 4 >= 2) {
             input = output;
-            output = scratch;
+            output = FastArray.toFastArray(scratch);
         } else
-            input = scratch;
+            input = FastArray.toFastArray(scratch);
 
         input.clear();
-        input.add(x1);
-        input.add(y1);
-        input.add(x2);
-        input.add(y2);
-        input.add(x3);
-        input.add(y3);
-        input.add(x1);
-        input.add(y1);
+        input.push(x1);
+        input.push(y1);
+        input.push(x2);
+        input.push(y2);
+        input.push(x3);
+        input.push(y3);
+        input.push(x1);
+        input.push(y1);
         output.clear();
 
         var clippingVertices:FloatArray = clippingArea.items;
@@ -232,16 +233,16 @@ class SkeletonClipping {
             var edgeX2:Float = clippingVertices[i + 2]; var edgeY2:Float = clippingVertices[i + 3];
             var deltaX:Float = edgeX - edgeX2; var deltaY:Float = edgeY - edgeY2;
 
-            var inputVertices:FloatArray = input.items;
-            var inputVerticesLength:Int = input.size - 2; var outputStart:Int = output.size;
+            var inputVertices:FastArray<Float> = input;
+            var inputVerticesLength:Int = input.length - 2; var outputStart:Int = output.length;
             var ii:Int = 0; while (ii < inputVerticesLength) {
                 var inputX:Float = inputVertices[ii]; var inputY:Float = inputVertices[ii + 1];
                 var inputX2:Float = inputVertices[ii + 2]; var inputY2:Float = inputVertices[ii + 3];
                 var side2:Bool = deltaX * (inputY2 - edgeY2) - deltaY * (inputX2 - edgeX2) > 0;
                 if (deltaX * (inputY - edgeY2) - deltaY * (inputX - edgeX2) > 0) {
                     if (side2) { // v1 inside, v2 inside
-                        output.add(inputX2);
-                        output.add(inputY2);
+                        output.push(inputX2);
+                        output.push(inputY2);
                         { ii += 2; continue; }
                     }
                     // v1 inside, v2 outside
@@ -249,39 +250,42 @@ class SkeletonClipping {
                     var s:Float = c0 * (edgeX2 - edgeX) - c2 * (edgeY2 - edgeY);
                     if (Math.abs(s) > 0.000001) {
                         var ua:Float = (c2 * (edgeY - inputY) - c0 * (edgeX - inputX)) / s;
-                        output.add(edgeX + (edgeX2 - edgeX) * ua);
-                        output.add(edgeY + (edgeY2 - edgeY) * ua);
+                        output.push(edgeX + (edgeX2 - edgeX) * ua);
+                        output.push(edgeY + (edgeY2 - edgeY) * ua);
                     } else {
-                        output.add(edgeX);
-                        output.add(edgeY);
+                        output.push(edgeX);
+                        output.push(edgeY);
                     }
                 } else if (side2) { // v1 outside, v2 inside
                     var c0:Float = inputY2 - inputY; var c2:Float = inputX2 - inputX;
                     var s:Float = c0 * (edgeX2 - edgeX) - c2 * (edgeY2 - edgeY);
                     if (Math.abs(s) > 0.000001) {
                         var ua:Float = (c2 * (edgeY - inputY) - c0 * (edgeX - inputX)) / s;
-                        output.add(edgeX + (edgeX2 - edgeX) * ua);
-                        output.add(edgeY + (edgeY2 - edgeY) * ua);
+                        output.push(edgeX + (edgeX2 - edgeX) * ua);
+                        output.push(edgeY + (edgeY2 - edgeY) * ua);
                     } else {
-                        output.add(edgeX);
-                        output.add(edgeY);
+                        output.push(edgeX);
+                        output.push(edgeY);
                     }
-                    output.add(inputX2);
-                    output.add(inputY2);
+                    output.push(inputX2);
+                    output.push(inputY2);
                 }
                 clipped = true;
             ii += 2; }
 
-            if (outputStart == output.size) { // All edges outside.
+            if (outputStart == output.length) { // All edges outside.
                 originalOutput.clear();
+
+                output.toStdArray();
+                input.toStdArray();
                 return true;
             }
 
-            output.add(output.items[0]);
-            output.add(output.items[1]);
+            output.push(output[0]);
+            output.push(output[1]);
 
             if (i == clippingVerticesLast) break;
-            var temp:FloatArray = output;
+            var temp:FastArray<Float> = output;
             output = input;
             output.clear();
             input = temp;
@@ -289,10 +293,12 @@ class SkeletonClipping {
 
         if (originalOutput != output) {
             originalOutput.clear();
-            originalOutput.addAll(output.items, 0, output.size - 2);
+            originalOutput.addAll(output, 0, output.length - 2);
         } else
-            originalOutput.setSize(originalOutput.size - 2);
+            originalOutput.setSize(originalOutput.length - 2, 0.0);
 
+        output.toStdArray();
+        input.toStdArray();
         return clipped;
     }
 
