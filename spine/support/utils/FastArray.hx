@@ -1,9 +1,12 @@
 package spine.support.utils;
 
+/**
+	This is the class actually holding the data. The need for splitting up the logic and data comes down to Haxe's awful handling of
+	operator overloading. Which can only be done on an abstract, which itself cannot hold data.
+**/
 @:allow(FastArray)
 class FastArrayInternal<T> {
 	public var length:Int;
-
 	public var data:std.Array<T>;
 
 	public function new(shouldAlloc = true) {
@@ -15,6 +18,12 @@ class FastArrayInternal<T> {
 	}
 }
 
+/**
+	This class is a minor abstraction on top of the regular Array class with the single purpose of forcing the Array to never shrink.
+	This might not be a problem on other platforms, but specifically for the JS target, Array shrinking is a pretty big performance bottleneck
+	in the SkeletonClipping.clip function. As the clip function repeatedly pushes/pops it causes a lot of extra memory allocations, as
+	the JavaScript engines(especially Spidermonkey) will pretty much always realloc the memory when changing the length.
+**/
 @:forward(length, data)
 abstract FastArray<T>(FastArrayInternal<T>) from FastArrayInternal<T> {
 	public function new(shouldAlloc = true) {
